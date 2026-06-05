@@ -1,69 +1,71 @@
 # ternary-harmonic
 
-**Harmonic series, overtones, and chords for ternary signals.**
+**The overtone series, made from three values. Where physics meets Z₃.**
 
-Every periodic signal has a fundamental frequency — the base repetition rate — and overtones at integer multiples. The harmonic series is the physics of *why* a violin and a trumpet playing the same note sound different: they share the fundamental but have different overtone amplitudes.
+Play any note on any instrument and you don't hear one frequency — you hear a whole family of them. The fundamental, then 2x, 3x, 4x, 5x... the harmonic series. It's not a musical convention. It's physics. A vibrating string naturally produces all these frequencies simultaneously, and their relative amplitudes determine the *timbre* — the thing that makes a violin sound different from a flute playing the same note.
 
-This crate brings harmonic analysis to ternary signals. Given a repeating pattern of `{-1, 0, +1}`, compute the fundamental, generate the harmonic series, measure harmonic distortion, and build chords from ternary frequencies.
+This crate maps the harmonic series into ternary space. Given a fundamental frequency, it generates overtones at integer multiples, each with configurable amplitude. The result is a rich, multi-layered ternary signal that carries the physics of real sound inside the {-1, 0, +1} constraint.
 
 ## What's Inside
 
-- **`fundamental(pattern_len, sample_rate)`** — frequency of a repeating ternary pattern
-- **`harmonic_series(base_freq, count)`** — overtones at n×f for n = 1..count
-- **`subharmonic(base_freq, n)`** — frequency at 1/n of the fundamental
-- **`overtone_index(frequency, base_freq)`** — which harmonic number is closest?
-- **`harmonic_distortion(harmonics)`** — THD: ratio of non-fundamental energy to total
-- **`Chord`** — multiple frequencies with amplitudes, weighted sum, and consonance measure
-- **`consonance(freqs)`** — how harmonically compatible are these frequencies? (Based on simple integer ratios)
+- **`fundamental(freq, ticks)`** — the base tone. Same as `ternary_wave::square` but named for clarity
+- **`overtone_series(freq, ticks, harmonics)`** — generate N harmonics. Each is a ternary wave at freq×n, with amplitude 1/n
+- **`chord(frequencies, ticks)`** — play multiple frequencies simultaneously. Ternary addition (mod 3)
+- **`interval(a, b, ticks)`** — two frequencies. The simplest chord. The relationship between them IS the music
+- **`power_spectrum(signal)`** — compute the frequency content of a ternary signal. What frequencies are present?
+- **`harmonic_ratio(signal)`** — how harmonic is the signal? Pure tones score high. Noise scores low
+- **`dissonance(signals)`** — measure the sensory dissonance between multiple ternary signals
 
 ## Quick Example
 
 ```rust
 use ternary_harmonic::*;
 
-// A ternary pattern repeats every 8 samples at 8000 Hz
-let fund = fundamental(8, 8000.0);
-assert_eq!(fund, 1000.0); // 1 kHz fundamental
+// A single fundamental at frequency 2
+let fundamental = fundamental(2, 16);
 
-// First 5 harmonics
-let harmonics = harmonic_series(fund, 5);
-// [1000, 2000, 3000, 4000, 5000] Hz
+// Add 4 overtones: 2f, 3f, 4f, 5f
+let rich = overtone_series(2, 16, 4);
+// A thicker, more complex sound than the fundamental alone
 
-// Which harmonic is 3000 Hz?
-assert_eq!(overtone_index(3000.0, fund), 3); // 3rd harmonic
+// A perfect fifth: frequencies 4 and 6 (ratio 3:2)
+let fifth = interval(4, 6, 16);
 
-// Build a chord: root + fifth + octave
-let chord = Chord::new(
-    vec![100.0, 150.0, 200.0],  // frequencies
-    vec![1.0, 0.7, 0.5],        // amplitudes
-);
-let cons = consonance(&chord.frequencies);
-// High consonance: 1:1.5:2 = simple integer ratios
+// A major triad: 4, 5, 6 (ratio 4:5:6)
+let major = chord(&[4, 5, 6], 16);
 
-// Measure distortion
-let h = vec![1.0, 0.3, 0.1, 0.05]; // fundamental + overtones
-let thd = harmonic_distortion(&h);
-// ~10% distortion — the overtones add flavor, not noise
+// Analyze: what's in this signal?
+let spectrum = power_spectrum(&rich);
+// Peaks at the fundamental and its multiples
+
+// How consonant is the chord?
+let diss = dissonance(&major);
+// Low dissonance = sounds "nice". High = sounds "tense".
 ```
 
-## The Insight
+## The Deeper Truth
 
-**Ternary patterns have natural harmonics.** A repeating ternary sequence of period 8 (the Fibonacci period!) has a fundamental frequency and a specific overtone structure. The ternary constraint means harmonics are *discrete* — there's no spectral leakage, no windowing artifacts. The harmonic content is exactly determined by the pattern shape.
+**The harmonic series is the same in ternary as it is in physics.** A string vibrates at its fundamental and all integer multiples. In continuous audio, each harmonic is a sine wave at fn with amplitude ∝ 1/n. In ternary, each harmonic is a quantized ternary wave at fn with amplitude 1/n (expressed as how often it reaches ±1 vs. 0).
+
+The consequence: ternary harmonics have the *same ratios* as continuous harmonics. A perfect fifth (3:2) sounds like a fifth. An octave (2:1) sounds like an octave. The physics is preserved because the physics lives in the *ratios*, not the absolute values. Ternary quantization changes the timbre but preserves the harmonic relationships.
+
+This is why ternary music works at all. The ear doesn't hear absolute amplitude — it hears frequency ratios. And ternary preserves those ratios. The "sound" is different (grittier, more digital) but the *harmony* is identical. You can play Bach in ternary. You can play Coltrane. The intervals are the same.
 
 **Use cases:**
-- **Audio synthesis** — build rich timbres from simple ternary patterns
-- **Music theory** — harmonic analysis of algorithmic compositions
-- **Signal analysis** — identify harmonic structure in ternary data streams
-- **Acoustic modeling** — simulate room resonances with ternary-valued modes
-- **Education** — demonstrate harmonic series with minimal state
+- **Additive synthesis** — build complex tones by stacking harmonics
+- **Music theory** — teach harmonic relationships with the simplest possible representation
+- **Algorithmic composition** — generate chords and intervals programmatically
+- **Timbre design** — control which harmonics are present to shape the sound
+- **Education** — the overtone series, made audible and manipulable
 
 ## See Also
 
-- **ternary-fib** — period-8 ternary Fibonacci (a natural harmonic foundation)
-- **ternary-wave** — waveform generators that create harmonic content
-- **ternary-phase** — phase relationships between harmonics
-- **ternary-envelope** — shape the amplitude of harmonic content over time
-- **ternary-echo** — echoes create comb-filter harmonics
+- **ternary-wave** — the raw waveforms that harmonics are built from
+- **ternary-resonance** — resonance as a dynamic process (harmonic filtering in real-time)
+- **ternary-ear** — ear training: learn to hear these intervals
+- **ternary-music** — music theory built on harmonic relationships
+- **ternary-rack** — wire harmonic generators into a modular synth
+- **ternary-fib** — the period-8 cycle as a natural harmonic rhythm
 
 ## Install
 
